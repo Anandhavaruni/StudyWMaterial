@@ -1,0 +1,78 @@
+# Cron Schedules have been converted using UTC Time Zone and may need to be updated for your location
+variables:
+- name: BuildParameters.solution
+  value: '**\*.sln'
+- name: BuildParameters.ArtifactName
+  value: drop
+schedules:
+- cron: 0 16 * * 5
+  branches:
+    include:
+    - refs/heads/master
+  always: true
+name: $(date:yyyyMMdd)$(rev:.r)
+jobs:
+- job: Job_1
+  displayName: Build
+  timeoutInMinutes: 240
+  pool:
+    vmImage: windows-latest
+  steps:
+  - checkout: self
+    fetchDepth: 1
+  - task: NuGetToolInstaller@0
+    displayName: Use NuGet 4.4.1
+    enabled: False
+    inputs:
+      versionSpec: 4.4.1
+  - task: NuGetCommand@2
+    displayName: NuGet restore
+    inputs:
+      solution: $(BuildParameters.solution)
+  - task: VSBuild@1
+    displayName: Build solution **\*.sln
+    inputs:
+      solution: $(BuildParameters.solution)
+      platform: $(BuildPlatform)
+      configuration: $(BuildConfiguration)
+  - task: VSTest@2
+    displayName: Test Assemblies
+    inputs:
+      testAssemblyVer2: >-
+        **\*Portal.Test.dll
+
+        !**\*TestAdapter.dll
+
+        !**\obj\**
+
+        !**\*CoUk.Test.dll
+
+        !**\*ISA.Test*.dll
+
+        !**\*MyWesleyan.Regression.dll
+
+        !**\*MyWesleyan.Test.dll
+      diagnosticsEnabled: true
+      rerunFailedTests: true
+  - task: PublishSymbols@2
+    displayName: Publish symbols path
+    continueOnError: True
+    inputs:
+      SearchPattern: '**\bin\**\*.pdb'
+      PublishSymbols: false
+      SymbolServerType: TeamServices
+  - task: CopyFiles@2
+    displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+    condition: succeededOrFailed()
+    inputs:
+      SourceFolder: $(system.defaultworkingdirectory)
+      Contents: '**\bin\$(BuildConfiguration)\**'
+      TargetFolder: $(build.artifactstagingdirectory)
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: drop'
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(build.artifactstagingdirectory)
+      ArtifactName: $(BuildParameters.ArtifactName)
+      TargetPath: '\\my\share\$(Build.DefinitionName)\$(Build.BuildNumber)'
+...
