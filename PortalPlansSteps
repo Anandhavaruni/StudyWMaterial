@@ -1,0 +1,474 @@
+using NUnit.Framework;
+using Portal.Test.Pages;
+using RestSharp;
+using TechTalk.SpecFlow;
+using Wesleyan.Framework.Base;
+using RestSharp.Serializers.Json;
+using Portal.Test.ApiObjects;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System;
+using Wesleyan.Framework.Extensions;
+using System.Globalization;
+using System.Text.RegularExpressions;
+
+namespace Portal.Test.Steps
+{
+    [Binding]
+    public class PortalPlansSteps : BaseStep
+    {
+        private object _ApiCall;
+        private bool ApiSuppressionFlag;
+        private string APIsuppressionReason;
+        private string APIPlanNumber;
+        private decimal APITotalfundValue;
+        private DateTimeOffset APIPlanLastupdateddate;
+        private string APIPremiumFrequency;
+        private double APIRegularPremiumAmount;
+        private double APIRemainingISAAllowance;
+        private bool APIJointlyOwned;
+        private bool APIHeldinTrust;
+        private DateTimeOffset APIRetirementdate;
+        private double APIRegularIncomeAmount;
+        private string APIRegularIncomeFrequency;
+        private string APIbeneficiaryName;
+        private string APIbeneficiaryRole;
+        private DateTimeOffset APILastPremiumPaymentdate;
+        private double APILastPremiumPaymentValue;
+        private DateTimeOffset APINextPremiumPaymentDate;
+        private double APIHoldingValue;
+        private double APILastIncomePaymentvalue;
+        private DateTimeOffset APILastIncomePaymentDate;
+        private decimal APIsurrenderValue;
+        private decimal APITransfervalue;
+
+
+
+        public PortalPlansSteps(ParallelConfig parallelConfig) : base(parallelConfig)
+        {
+        }
+
+        internal object Apicall()
+        {
+            _parallelConfig.CurrentPage = new HomePage(_parallelConfig);
+            string referencenumber = _parallelConfig.CurrentPage.As<HomePage>().CheckReferenceNumber();
+            _ApiCall = ApiExtensions.ApiReader(referencenumber);
+            var _APIResponse = JsonConvert.DeserializeObject<List<PlansApiObjects>>(_ApiCall.ToString());
+
+            return _APIResponse;
+        }
+
+        [Then(@"Valid (.*) Plan Name is dispalyed on plan details screen")]
+        public void ThenValidSavingsPlanNameIsDispalyed(string PlanName)
+        {
+            _parallelConfig.CurrentPage = new PortalPlansPage(_parallelConfig);
+            Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().GetPlanName(PlanName));
+        }
+
+        [Then(@"I confirm (.*) Plans section is dispalyed")]
+        public void ThenIConfirmSAVINGSANDINVESTMENTSPlansSectionIsDispalyed(string TypeOfPlansSection)
+        {
+            _parallelConfig.CurrentPage = new PortalPlansPage(_parallelConfig);
+            if (TypeOfPlansSection == "Savings and Investments")
+                Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsSavingsandInvestmentTypeIsDisplayed());
+            if (TypeOfPlansSection == "Retirement")
+                Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsRetirementPlanTypeIsDisplayed());
+            if (TypeOfPlansSection == "Protection")
+                Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsLblProtectionTypeIsDisplayed());
+        }
+        [Then(@"The API values for the (.*) is used to validate plan summary fields")]
+
+        public void ThenTheAPIValuesForTheFlexibleSavingsPlanIsUsedToValidatePlanSummaryFields(string SubPlanName)
+        {
+            _parallelConfig.CurrentPage = new HomePage(_parallelConfig);
+            string referencenumber = _parallelConfig.CurrentPage.As<HomePage>().CheckReferenceNumber();
+            _ApiCall = ApiExtensions.ApiReader(referencenumber);
+            var _PlansAPIResponse = JsonConvert.DeserializeObject<List<PlansApiObjects>>(_ApiCall.ToString());
+
+            _parallelConfig.CurrentPage = new PortalPlansPage(_parallelConfig);
+
+            for (int i = 0; i < _PlansAPIResponse.Count; i++)
+            {
+                if (_PlansAPIResponse[i].PlanSuppression != null)
+                {
+                    ApiSuppressionFlag = _PlansAPIResponse[i].PlanSuppression.SuppressionFlag;
+                    if (ApiSuppressionFlag == true && _PlansAPIResponse[i].PlanSuppression.SuppressionReasons != null)
+                    {
+                        foreach (var item2 in _PlansAPIResponse[i].PlanSuppression.SuppressionReasons)
+                        {
+                            APIsuppressionReason = item2.Reason;
+                        }
+                    }
+                }
+
+                    if (SubPlanName == _PlansAPIResponse[i].PlanDescription && ((_PlansAPIResponse[i].PlanSuppression != null && ApiSuppressionFlag == false)|| APIsuppressionReason == "KT2: Aggregated Withdrawals")
+                    && _PlansAPIResponse[i].PlanStatus == "Active")
+                {
+                    APIJointlyOwned = _PlansAPIResponse[i].JointlyOwned;
+                    APIHeldinTrust = _PlansAPIResponse[i].HeldInTrust;
+                    APIPlanNumber = _PlansAPIResponse[i].PlanNumber;
+                    //APITotalfundValue = _PlansAPIResponse[i].DerivedValues.TotalFundValue;
+                    APIsurrenderValue = _PlansAPIResponse[i].surrenderValue;
+                    APITransfervalue = _PlansAPIResponse[i].TransferValue;
+
+
+                    APIPlanLastupdateddate = _PlansAPIResponse[i].PlanAsAtDate;
+                    APIRemainingISAAllowance = _PlansAPIResponse[i].RemainingISAAllowance;
+
+                    if (_PlansAPIResponse[i].DerivedValues != null)
+                    {
+                        APIPremiumFrequency = _PlansAPIResponse[i].DerivedValues.PremiumFrequency;
+                        APIRegularPremiumAmount = _PlansAPIResponse[i].DerivedValues.RegularPremiumAmount;
+                        APIRetirementdate = _PlansAPIResponse[i].DerivedValues.retirementDate;
+                        //APITotalfundValue = _PlansAPIResponse[i].DerivedValues.TotalFundValue;
+                        APILastPremiumPaymentdate = _PlansAPIResponse[i].DerivedValues.LastPremiumPaymentDate;
+                        APILastPremiumPaymentValue = _PlansAPIResponse[i].DerivedValues.LastPremiumPaymentValue;
+                        APINextPremiumPaymentDate = _PlansAPIResponse[i].DerivedValues.NextPremiumPaymentDate;
+                        APIHoldingValue = _PlansAPIResponse[i].DerivedValues.HoldingValue;
+                        APILastIncomePaymentvalue = _PlansAPIResponse[i].DerivedValues.LastIncomePaymentValue;
+                        APILastIncomePaymentDate = _PlansAPIResponse[i].DerivedValues.LastIncomePaymentDate;
+                        if (_PlansAPIResponse[i].DerivedValues.Beneficiaries != null)
+                            foreach (var item in _PlansAPIResponse[i].DerivedValues.Beneficiaries)
+                            {
+                                APIbeneficiaryName = item.BeneficiaryName;
+                                APIbeneficiaryRole = item.BeneficiaryRole;
+                            }
+
+                    }
+
+                    if (_PlansAPIResponse[i].Incomes != null)
+                        foreach (var tuple in _PlansAPIResponse[i].Incomes)
+
+                        {
+                            APIRegularIncomeAmount = tuple.RegularIncomeAmount;
+                            APIRegularIncomeFrequency = tuple.IncomeFrequency;
+                        }
+                    Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().GetSubPlanNameText(SubPlanName));
+                    //Validate all common plan summary fields are displayed
+                    _parallelConfig.CurrentPage.As<PortalPlansPage>().IsCommonFieldsaredisplayedOnPlanSummary(SubPlanName, APIPlanNumber, APIPlanLastupdateddate, APIJointlyOwned, APIHeldinTrust);
+
+                    // Total fund value
+                    if (_PlansAPIResponse[i].schemaType == "planSavingsInvestments" && APITotalfundValue > 0 && _PlansAPIResponse[i].schemaType != "planLifeCICProtection")
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTotalfundvalueisdisplayedOnPlanSummary(SubPlanName, APIsurrenderValue);
+                    else if (_PlansAPIResponse[i].schemaType == "planPension" && APITotalfundValue > 0 && _PlansAPIResponse[i].schemaType != "planLifeCICProtection")
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTotalfundvalueisdisplayedOnPensionPlanSummary(SubPlanName, APITransfervalue);
+                    else if (_PlansAPIResponse[i].schemaType != "planLifeCICProtection" && APITotalfundValue > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTotalfundvalueisdisplayedOnPlanSummary(SubPlanName, APITotalfundValue);
+
+                    // Remaining ISA Allowance
+                    if (_PlansAPIResponse[i].PlanSource != "ADR Mirror" && (SubPlanName.Contains("ISA") && APIRemainingISAAllowance > 0))
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsRemainingISAallowanceisdisplayedOnPlanSummary(SubPlanName, APIRemainingISAAllowance);
+
+                    // Regular premium Amount and Premium Frequency is not single and intermittent
+                    if ((APIPremiumFrequency == "" || APIPremiumFrequency == "Monthly") && _PlansAPIResponse[i].schemaType != "planPension" && _PlansAPIResponse[i].schemaType != "planSavingsInvestments"
+                        && APIRegularPremiumAmount > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsRegularPremiumamountisdisplayedOnPlanSummary(SubPlanName, APIRegularPremiumAmount);
+
+                    //PremiumFrequency
+                    if (APIPremiumFrequency != null && (_PlansAPIResponse[i].schemaType != "planPension" && _PlansAPIResponse[i].schemaType == "planIncomeProtection" ||
+                        _PlansAPIResponse[i].schemaType == "planLifeCICProtection" && _PlansAPIResponse[i].schemaType != "planSavingsInvestments") && APIRegularPremiumAmount > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsPremiumFrequencyisdisplayedOnPlanSummary(SubPlanName, APIPremiumFrequency);
+
+                    //Regular Income amount and Regular Income Frequency
+                    if ((APIRegularIncomeFrequency == "Yearly" || APIRegularIncomeFrequency == "Monthly")
+                        && APIRegularIncomeAmount > 0)
+
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsLastIncomeAmountandFrequencyisdisplayedOnPlanSummary(SubPlanName, APIRegularIncomeFrequency, APIRegularIncomeAmount);
+                    // retirement date
+                    if (APIRetirementdate != null && APIRetirementdate.Year >= 1900 && APIRetirementdate.Year <= 2898)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsRetirementDateisdisplayedonPlanSummary(SubPlanName, APIRetirementdate);
+
+                    // Incase of 3rd party plans and Insurance plans needs to amend
+
+                    // start date or commencement date
+
+                    // if(_PlansAPIResponse[i].StartDate != null)
+
+                    //     // provider name
+                    //     if (_PlansAPIResponse[i].ProviderName != null)
+                    // Click on View plan
+                    _parallelConfig.CurrentPage.As<PortalPlansPage>().ClickViewPlan(SubPlanName);
+
+                    break;
+                }
+
+                else
+                {
+                    // for suppression plans
+
+                }
+            }
+        }
+
+        [When(@"I Click on View Plan for (.*)")]
+        public void WhenIClickOnViewPlanForPersonalPensionPlan(string PlanName)
+        {
+            _parallelConfig.CurrentPage = new PortalPlansPage(_parallelConfig);
+            _parallelConfig.CurrentPage.As<PortalPlansPage>().ClickViewPlan(PlanName);
+        }
+
+        [When(@"I Click on Request Plan Info for Suppressed plan (.*) from Plan summary")]
+        public void WhenIClickOnRequestPlanInfoForPIP(string referencenumber)
+        {
+            _parallelConfig.CurrentPage = new PortalPlansPage(_parallelConfig);
+            _parallelConfig.CurrentPage.As<PortalPlansPage>().ClickSuppressionRequestPlanInfor(referencenumber);
+        }
+
+        [Then(@"All The API values for the (.*) with a (.*) premium are verified in the plan details")]
+        public void ThenAllTheAPIValuesForTheFlexibleSavingsPlanWithASinglePremiumAreVerifiedInThePlanDetails(string subplanname, string PremiumFrequency)
+        {
+
+            var _PlansAPIResponse = JsonConvert.DeserializeObject<List<PlansApiObjects>>(_ApiCall.ToString());
+            _parallelConfig.CurrentPage = new PortalPlansPage(_parallelConfig);
+
+            for (int i = 0; i < _PlansAPIResponse.Count; i++)
+            {
+                if (subplanname == _PlansAPIResponse[i].PlanDescription && (ApiSuppressionFlag == false || APIsuppressionReason == "KT2: Aggregated Withdrawals") && _PlansAPIResponse[i].PlanStatus == "Active")
+                {
+
+                    List<(string FundName, string ValueOfUnits)> APIFundNameandFundValuelist = new List<(string FundName, string ValueOfUnits)>();
+
+                    if (_PlansAPIResponse[i].FundHoldings != null)
+                    {
+                        foreach (var tuple in _PlansAPIResponse[i].FundHoldings)
+                        {
+                            if (tuple.ValueOfUnits == 0)
+                                continue;
+                            // Format non-zero values to UK currency
+                            string formattedValue = _parallelConfig.CurrentPage.As<PortalPlansPage>().FormatCurrency(tuple.ValueOfUnits);
+
+                            APIFundNameandFundValuelist.Add((tuple.FundName, formattedValue));
+                        }
+                    }
+
+
+                    // Common Plan details Fields
+                    _parallelConfig.CurrentPage.As<PortalPlansPage>().IsCommonFieldsaredisplayedOnPlandetails(subplanname, APIPlanNumber,
+                          APIJointlyOwned, APIHeldinTrust);
+                    // Total fund Value
+                    if (_PlansAPIResponse[i].schemaType == "planSavingsInvestments" && APITotalfundValue > 0 && _PlansAPIResponse[i].schemaType != "planLifeCICProtection")
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTotalFundValueisDisplayedOnplanDetails(APIsurrenderValue);
+                    else if (_PlansAPIResponse[i].schemaType == "planPension" && APITotalfundValue > 0 && _PlansAPIResponse[i].schemaType != "planLifeCICProtection")
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTotalFundValueisDisplayedOnplanDetails(APITransfervalue);
+                    else if (_PlansAPIResponse[i].schemaType != "planLifeCICProtection" && APITotalfundValue > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTotalFundValueisDisplayedOnplanDetails(APITotalfundValue);
+
+                    // Final Bonus value 
+                    if (_PlansAPIResponse[i].schemaType != "planLifeCICProtection" && _PlansAPIResponse[i].FinalBonusValue > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsFinalbonusValueisdisplayedOnPlanDetails(_PlansAPIResponse[i].FinalBonusValue);
+
+
+                    // Value or Current Value
+
+                    if (_PlansAPIResponse[i].schemaType == "planLifeCICProtection" && _PlansAPIResponse[i].surrenderValue > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsValueIsDisplayedonPlandetails(_PlansAPIResponse[i].surrenderValue);
+
+                    // FundName and Fund Value
+                    if ((_PlansAPIResponse[i].schemaType == "planSavingsInvestments" || _PlansAPIResponse[i].schemaType == "planPension") && APIHoldingValue > 0)
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsFundNameFundValueisDisplayedonPlandetails(APIFundNameandFundValuelist));
+                    if (_PlansAPIResponse[i].schemaType == "planLifeCICProtection" && _PlansAPIResponse[i].surrenderValue > 0)
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsFundNameFundValueisDisplayedonPlandetails(APIFundNameandFundValuelist));
+
+
+                    // last premium payment date and paid value
+                    if (APILastPremiumPaymentdate != null && APILastPremiumPaymentdate.Year >= 1900 && APILastPremiumPaymentdate.Year <= 2898 && APILastPremiumPaymentValue > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IslastPremiumpaymentdateandpaidvvalueOnPlandetails(APILastPremiumPaymentdate, APILastPremiumPaymentValue);
+
+                    // Regular premium Amount and Premium Frequency is not single and intermittent
+                    if ((PremiumFrequency == "" || PremiumFrequency == "Monthly") && _PlansAPIResponse[i].DerivedValues.RegularPremiumAmount > 0)
+                        //PremiumFrequency
+                        if (APIPremiumFrequency != null && (_PlansAPIResponse[i].schemaType == "planSavingsInvestments" || _PlansAPIResponse[i].schemaType == "planPension" || _PlansAPIResponse[i].schemaType == "planIncomeProtection" || _PlansAPIResponse[i].schemaType == "planLifeCICProtection") && _PlansAPIResponse[i].DerivedValues.RegularPremiumAmount > 0)
+                            //Next Premium Payment Date
+                            if (APINextPremiumPaymentDate != null && APINextPremiumPaymentDate.Year >= 1900 && APINextPremiumPaymentDate.Year <= 2898)
+                                _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateCommonValuesOnPlandetailsforMonthlyPremium(_PlansAPIResponse[i].DerivedValues.RegularPremiumAmount, APIPremiumFrequency, APINextPremiumPaymentDate);
+
+                    // Remaining ISA Allowance
+                    if (_PlansAPIResponse[i].PlanSource != "ADR Mirror" && (subplanname.Contains("ISA") || APIRemainingISAAllowance > 0))
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateRemainingISAallowanceonPlandetails(APIRemainingISAAllowance);
+
+                    // Term years
+                    if (_PlansAPIResponse[i].TermYears > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateTermYearsdisplayed(_PlansAPIResponse[i].TermYears);
+                    // Term Age
+                    if (_PlansAPIResponse[i].TermAge > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTermAgeisdisplayedOnPlandetails(_PlansAPIResponse[i].TermAge);
+
+                    //Premium Review Date
+                    if (_PlansAPIResponse[i].PremiumReviewDate != null && _PlansAPIResponse[i].PremiumReviewDate.Year >= 1900 && _PlansAPIResponse[i].PremiumReviewDate.Year <= 2898)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidatePremiumReviewdateisDisplayed(_PlansAPIResponse[i].PremiumReviewDate);
+
+                    // retirement Date
+                    if (APIRetirementdate != null && APIRetirementdate.Year >= 1900 && APIRetirementdate.Year <= 2898)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateRetirementdateisDisplayed(APIRetirementdate);
+
+                    //Regular Income amount and Regular Income Frequency
+                    if ((APIRegularIncomeFrequency == "Yearly" || APIRegularIncomeFrequency == "Monthly") && APIRegularIncomeAmount > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateLastIncomeAmountandFrequencyisdisplayed(APIRegularIncomeFrequency, APIRegularIncomeAmount);
+
+                    // Last Income  Payment Date
+                    if (APILastIncomePaymentDate != null && APILastIncomePaymentDate.Year >= 1900 && APILastIncomePaymentDate.Year <= 2898)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateLastIncomePaymentdateIsDisplayed(APILastIncomePaymentDate);
+                    // Last Income  Payment Value
+                    if (APILastIncomePaymentvalue > 0)
+
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateLastIncomePaymentValuesDisplayed(APILastIncomePaymentvalue);
+                    //Dependant's Annuity 
+                    if (_PlansAPIResponse[i].SpousePension > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateDependantAnnuityisDisplayed(_PlansAPIResponse[i].SpousePension);
+
+                    // Annuity End Date
+                    if (_PlansAPIResponse[i].EndDate != null && _PlansAPIResponse[i].EndDate.Year >= 1900 && _PlansAPIResponse[i].EndDate.Year <= 2898)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateAnnuityEndADateisDisplayed(_PlansAPIResponse[i].EndDate);
+                    // Critical Illnes Cover
+                    if (_PlansAPIResponse[i].CriticalIllnessCover > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateCriticalIllnessCoverisDisplayed(_PlansAPIResponse[i].CriticalIllnessCover);
+                    // Total Disablity Cover
+                    if (_PlansAPIResponse[i].TotalDisabilityCover > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateTotalDisabilityCoverisDisplayed(_PlansAPIResponse[i].TotalDisabilityCover);
+                    // Death benefit
+                    if (_PlansAPIResponse[i].DeathBenefit > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateDeathBenefitisDisplayed(_PlansAPIResponse[i].DeathBenefit);
+                    // Beneficiary Name
+                    if (APIbeneficiaryName != null && APIbeneficiaryName != "" && APIbeneficiaryRole == "PREFERRED BENEFICIARY")
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateBeneficiaryNameisDisplayed(APIbeneficiaryName);
+
+                    // cash in Value
+                    if ((_PlansAPIResponse[i].schemaType != "planSavingsInvestments" || _PlansAPIResponse[i].schemaType != "planLifeCICProtection") && _PlansAPIResponse[i].surrenderValue > 0)
+                        // _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateCashinValueisDisplayed(_PlansAPIResponse[i].surrenderValue);
+                    //Crystallised Fund value
+                     if (_PlansAPIResponse[i].CrystallisedFund > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateCrystalisedfundisDisplayed(_PlansAPIResponse[i].CrystallisedFund);
+                    //Uncrystallised Fund value
+                    if (_PlansAPIResponse[i].UncrystallisedFund > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateUncrystallisedFundValueisDisplayed(_PlansAPIResponse[i].UncrystallisedFund);
+
+                    //transfer value
+                    if (_PlansAPIResponse[i].schemaType != "planPension" && _PlansAPIResponse[i].TransferValue > 0)
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().ValidateDeathBenefitisDisplayed(_PlansAPIResponse[i].DeathBenefit);
+                    break;
+                }
+            }
+        }
+
+        [Then(@"I validate (.*) Investment history for (.*) premium paying user on Plan details")]
+        public void ThenIValidateInvestmentHistoryForMonthlyPremiumPayingUserOnPlanDetails(string subplanname, string PremiumFrequency)
+        {
+            var _PlansAPIResponse = JsonConvert.DeserializeObject<List<PlansApiObjects>>(_ApiCall.ToString());
+
+            for (int i = 0; i < _PlansAPIResponse.Count; i++)
+            {
+                if (subplanname == _PlansAPIResponse[i].PlanDescription && _PlansAPIResponse[i].PlanStatus == "Active")
+                {
+                   
+                    List<(string date, string amount)> ApiPaymentsList = new List<(string date, string amount)>();
+                    if (_PlansAPIResponse[i].paymentsIn != null)
+                        foreach (var item in _PlansAPIResponse[i].paymentsIn)
+                        {
+                            DateTime currentDate = DateTime.Now;
+                            DateTime paymentDate = item.PaymentDate;
+                            if (paymentDate <= currentDate.AddMonths(12))
+                            {
+                                string FormattedDate = item.PaymentDate.ToString("dd MMM, yyyy");
+                                string FormattedAmount = _parallelConfig.CurrentPage.As<PortalPlansPage>().FormatCurrency(item.PaidAmount);
+                                ApiPaymentsList.Add((FormattedDate, FormattedAmount));
+                            }
+                          
+                        }
+
+                    if (PremiumFrequency == APIPremiumFrequency)
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsAllTransaredisplayedasexpected(ApiPaymentsList));
+                    break;
+                }
+            }
+        }
+        [Then(@"I validate deferred period benefits displayed for (.*)")]
+        public void ThenIValidateDeferredPeriodBenefitsDisplayedForPersonalIncomeProtection(string subplanname)
+        {
+            var _PlansAPIResponse = JsonConvert.DeserializeObject<List<PlansApiObjects>>(_ApiCall.ToString());
+
+            for (int i = 0; i < _PlansAPIResponse.Count; i++)
+            {
+                if (subplanname == _PlansAPIResponse[i].PlanDescription && _PlansAPIResponse[i].IncomeProtectionBenefit != null)
+                {
+
+                    List<(string periodinweeks, string amount)> ApiDefPeriodBenefits = new List<(string periodinweeks, string amount)>();
+
+                    var incomeProtectionBenefit = _PlansAPIResponse[i].IncomeProtectionBenefit;
+                    incomeProtectionBenefit.Sort((x, y) => string.Compare(x.IncomeDeferredWeeks, y.IncomeDeferredWeeks));
+
+                    // foreach (var item in _PlansAPIResponse[i].IncomeProtectionBenefit)
+                    for (int j = 0; j < Math.Min(5, incomeProtectionBenefit.Count); j++ )
+                    {
+                        var item = incomeProtectionBenefit[j];
+                        string FormattedWeek = Regex.Replace(item.IncomeDeferredWeeks, @".0", " weeks");
+                        string Formatamount = _parallelConfig.CurrentPage.As<PortalPlansPage>().FormatCurrency(item.BenefitAmount);
+                        ApiDefPeriodBenefits.Add((FormattedWeek, Formatamount));
+                    }
+
+                    Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsDefferedPeriodandBenefitsdisplayed(ApiDefPeriodBenefits));
+                    break;
+                }
+            }
+        }
+
+        [Then(@"I confirm Manage your Plan Categories are displayed for (.*)")]
+        public void ThenIConfirmManageYourPlanCategoriesAreDisplayedForFlexibleSavingsPlan(string PlanName)
+        {
+
+            var _PlansAPIResponse = JsonConvert.DeserializeObject<List<PlansApiObjects>>(_ApiCall.ToString());
+            _parallelConfig.CurrentPage.As<PortalPlansPage>().IsHelpandSupportdisplayed();
+
+            for (int i = 0; i < _PlansAPIResponse.Count; i++)
+            {
+
+                if (PlanName == _PlansAPIResponse[i].PlanDescription)
+                {
+                    if (_PlansAPIResponse[i].schemaType == "planSavingsInvestments" &&
+                    _PlansAPIResponse[i].PlanSource != "ADR Mirror")
+                    {
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsChangePlanisdisplayed(_PlansAPIResponse[i].schemaType));
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsRequestPlanInfodisplayed();
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsRequestwithdrawalisdisplayed(PlanName));
+
+                        if (_PlansAPIResponse[i].PlanDescription.Contains("ISA"))
+                            _parallelConfig.CurrentPage.As<PortalPlansPage>().IsTopupISAisonPlanDetailsdisplayed();
+
+                    }
+
+                    if (_PlansAPIResponse[i].schemaType == "planPension" && _PlansAPIResponse[i].PlanSource != "ADR Mirror")
+                    {
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsChangePlanisdisplayed(_PlansAPIResponse[i].schemaType));
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsRequestPlanInfodisplayed();
+                    }
+                    if (_PlansAPIResponse[i].schemaType == "planAnnuity" && _PlansAPIResponse[i].PlanSource != "ADR Mirror")
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsAnnuityIncomedisplayed());
+
+                    if (_PlansAPIResponse[i].schemaType == "planIncomeProtection" && _PlansAPIResponse[i].schemaType == "planLifeCICProtection"
+                       && _PlansAPIResponse[i].PlanSource != "ADR Mirror")
+                        Assert.IsTrue(_parallelConfig.CurrentPage.As<PortalPlansPage>().IsRequestaClaimdisplayed());
+                    if (_PlansAPIResponse[i].PlanSource == "ADR Mirror")
+                        _parallelConfig.CurrentPage.As<PortalPlansPage>().IsAdrMirrorWutmPlanloginctaisdisplayed();
+
+                    break;
+
+                }
+
+            }
+
+        }
+
+        [Then(@"I click Back to Home button from plan details")]
+        public void ThenIClickBackToHomeButtonFromPlanDetails()
+        {
+            _parallelConfig.CurrentPage.As<PortalPlansPage>().ClicklogoutbuttonOnPlandetails();
+        }
+
+
+    }
+}
+
+
+
+
+
+
