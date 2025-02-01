@@ -1,0 +1,569 @@
+using NUnit.Framework;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
+using TechTalk.SpecFlow;
+using Wesleyan.Framework.Base;
+using Wesleyan.Framework.Extensions;
+
+namespace Portal.Test.Pages
+{
+    public class PortalPlansPage : BasePage
+    {
+        private IWebDriver driver;
+
+        private string PlanReferenceNumber;
+        private string TotalFundValue;
+        private string planupdateddate;
+        private string RemainingISAAllowance;
+        bool IsjointlyownedIcondisplayed;
+        private string PremiumFrquency;
+        private string Regularpremiumamount;
+        string mainWindowHandle;
+
+        #region Plans Web Elements
+
+        private IWebElement yourPlansText => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'YourPolicies')]"));
+        private IWebElement LblSavingsPlan => driver.FindElement(By.XPath("//*[@data-test='SavingsInvestment_Summary']"), 20);
+        private IWebElement LblRetirementPlan => driver.FindElement(By.XPath("//*[@data-test='Retirement_Summary']"), 20);
+        private IWebElement LblProectionPlan => driver.FindElement(By.XPath("//*[@data-test='Protection_Summary']"), 20);
+        private IList<IWebElement> LblPlanTypes => driver.FindElements(By.XPath("//*[@data-test='PlanSummary_PlanDescription']"));
+        private IWebElement btnrequestPlanInfo => driver.WaitUntilElementVisible(By.XPath("//button[@data-test='Suppression_btnRequestPlanInformation']"));
+        private IWebElement BtnTopUPISAOnPlanSummary => driver.WaitUntilElementVisible(By.XPath("//*[@data-test = 'TopUpISASavingsAndInvestmentBtn']"));
+
+        //Plan details Elements
+        private IWebElement IconPlansinTrust => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'Icons')]/div[contains(@id,'PlanInTrust')]"));
+        private IWebElement IconJointPlan => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'Icons')]/div[contains(@id,'JointCustomer')]"));
+        public IWebElement LblPlandetailsPlanName => driver.FindElement(By.XPath("//*[contains(@id,'PlanDescription')]"));
+        public IWebElement Plandetailsrefnumber => driver.FindElement(By.CssSelector("div[id*='ReferenceNo'] span"), 60);
+        private IWebElement Lbllastpremiumpaymentdate => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'LastPremiumPaymentDate')]//span"));
+        private IWebElement LbllastpremiumpaidValue => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'LastPremiumPaidValue')]//span"));
+        private IWebElement LblTotalfundValue => driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'Total Fund Value')]/parent::div/../following-sibling::div//span"));
+        private IWebElement LblFinalBonusValue => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'TotalFundBreakups')]//div[contains(@id,'FinalBonusValue')]//span)[2]"));
+        private IList<IWebElement> LblfundNameFundValue => driver.FindElements(By.XPath("//*[contains(@id,'TotalFundBreakups')]//div[contains(@id,'Fund_ValueOfUnits')]//span"));
+        private IWebElement LblTFVDownArrow => driver.FindElement(By.CssSelector("img[alt='down-arrow']"));
+        private IWebElement LblPremiumFrequency => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'PremiumFrequency')]//span"));
+        private IWebElement LblRegularPremiumAmnt => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'RegularPremiumAmount')]//span)[2]"));
+        private IWebElement LblNextPremiumPaymentDate => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'NextPremiumPaymentDate')]//span"));
+        private IWebElement LblRemainingISAAllowance => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'RemainingISAAllowance')]//span)[2]"));
+        private IList<IWebElement> LblPaymentdatevalueElements => driver.FindElements(By.XPath("//*[contains(@id,'Payments')]//div[contains(@id,'Fund_ValueOfUnits')]"), 80);
+        private IList<IWebElement> LblDeferredPeriodBenefits => driver.FindElements(By.XPath("//*[contains(@id,'IncomeProtectionBenefits')]//div[contains(@id,'Fund_ValueOfUnits')]"), 80);
+        private IWebElement BtnViewMoreTrans => driver.WaitUntilElementVisible(By.XPath("//*[@data-test = 'btn_ViewTransactions_Click']"));
+        private IWebElement BtnViewLessTrans => driver.WaitUntilElementVisible(By.XPath("//*[@data-test = 'btn_ViewLessTransactions_Click']"));
+
+        // Protection Plan  
+        private IWebElement LblTermYears => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'Term')]//span"));
+        private IWebElement LblTermAge => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'Term')]//span)[2]"));
+        private IWebElement LblCriticalIllnessCover => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'Criticalillnesscover')]//span)[2]"));
+        private IWebElement LblDeathbenefit => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'DeathBenefit')]//span)[2]"));
+        private IWebElement LblValue => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'Holding_Value')]//span)[2]"));
+        private IWebElement LblPremiumReviewDate => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'PremiumReviewDate')]//span)[2]"));
+        private IWebElement LblIncomeAmount => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'RegularIncomeAmount')]//span"));
+        private IWebElement LblIncomeFrequency => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'IncomeFrequency')]//span"));
+        private IWebElement LbllastIncomePayementValue => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'LastIncomePaymentValue')]//span"));
+        private IWebElement LblLastIncomePaymentDate => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'LastIncomePaymentDate')]//span"));
+        private IList<IWebElement> Lblfundnamefundvalue => driver.FindElements(By.XPath("//*[contains(@id,'FundHoldings') or contains(@id,'Fund_Holdings')]//div[contains(@id,'Fund_ValueOfUnits') or contains(@id,'Fund_ValueOfUnits2')]"));
+
+        //Pension plan elements
+        private IWebElement LblRetirementDate => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'SelectedRetirementDate')]//span"));
+        private IWebElement LblCrysFund => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'Crystallisedfundvalue')]//span"));
+        private IWebElement LblUnCrysFund => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'Uncrystallisedfundvalue')]//span)[2]"));
+        private IWebElement Lblbenefiercyname => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'Benificiaries')]//span"));
+        private IWebElement LblSpousePension => driver.WaitUntilElementVisible(By.XPath("(//*[contains(@id,'SpousesPension')]//span)[3]"));
+
+        // Manage your Plan elements
+        private IWebElement LnkHelpSupport => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'HelpAndsupport')]//a[@href='#']//span"), 80);
+        private IWebElement BtnLogintoWutm => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'WUTMButtons')]//a[@data-test='btn_LoginToWutmOnClick']"), 80);
+        private IWebElement LnkMakechangetomyplan => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'MakeChangeToMyPlan')]//a[@href='#']//span"), 80);
+        private IWebElement LinkRequestPlanInfo => driver.WaitUntilElementClickable(By.XPath("//a[contains(@id,'RequestPlanSummaryOrValue')]"), 80);
+        private IWebElement LinkRequestawithdrawal => driver.WaitUntilElementVisible(By.XPath("//a[contains(@id,'WithdrawalSavingLink')]//span"), 80);
+        private IWebElement BtnPlandetailsTopUpIsa => driver.WaitUntilElementVisible(By.XPath("//button[@data-test ='btn_TopUpIsaOnClick']"), 80);
+        private IWebElement BtnContinueinPopup => driver.WaitUntilElementVisible(By.XPath("//*[contains(@class,'popup-content')]//a[contains(@id,'Continue')]"), 80);
+        private IWebElement LnkbankdetailsforIncome => driver.WaitUntilElementVisible(By.XPath("//a[contains(@id,'ChangeAnnuityLink') and (@href='#')]//span"), 80);
+        private IWebElement LnkRequestaclaim => driver.WaitUntilElementVisible(By.XPath("//*[contains(@id,'RequestAClaim')]//a[@href='#']//span"), 80);
+        private IWebElement btnlogoutPlandetails => driver.WaitUntilElementVisible(By.XPath("//a[@href='#']/span[contains(text(),'Back to home')]"));
+        #endregion
+
+        public PortalPlansPage(ParallelConfig parallelConfig) : base(parallelConfig) => driver = _parallelConfig.Driver;
+
+        #region Plans Functionalities
+
+        internal bool IsSavingsandInvestmentTypeIsDisplayed() => LblSavingsPlan.Displayed;
+        internal bool IsRetirementPlanTypeIsDisplayed()
+        {
+            driver.ScrollElementIntoView(LblRetirementPlan);
+            return LblRetirementPlan.Displayed;
+        }
+        internal bool IsLblProtectionTypeIsDisplayed() => LblProectionPlan.Displayed;
+
+        internal bool GetPlanName(string PlanName) => driver.FindElement(By.XPath("//div[normalize-space()='" + PlanName + "']"), 90).Displayed;
+
+        internal bool GetSubPlanNameText(string subPlanName)
+        {
+            bool returnValue = false;
+
+            for (int i = 0; i <= LblPlanTypes.Count; i++)
+            {
+                driver.ScrollElementIntoView(LblPlanTypes[i]);
+                if (LblPlanTypes[i].Text == subPlanName)
+                {
+                    returnValue = true;
+                    break;
+                }
+            }
+            return returnValue;
+        }
+
+        // Plan Summary Fields validation, Certain fields are commonly used  across all plans  so their asserts has been handled in single method
+        internal void IsCommonFieldsaredisplayedOnPlanSummary(string _PlanName, string _apireference, DateTimeOffset _apiplanasdaate, bool _apijointlyowned, bool _apiheldintrust)
+        {
+            string _planasdaate = FormatDateforPlanSummary(_apiplanasdaate);
+
+            // Incase if the plan is jointly owned and held in trust
+            if (_apijointlyowned == true)
+                IsjointlyownedIcondisplayed = driver.FindElement(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/following-sibling::div//*[contains(@class,'Joint2')]")).Displayed;
+            if (_apiheldintrust == true)
+                yourPlansText.AssertText("Plans in Trust");
+
+            PlanReferenceNumber = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='PlanSummary_RefNumberVal']"), 60).Text;
+            planupdateddate = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='PlanSummary_LastUpdateDate']"), 60).Text;
+
+
+
+            Assert.AreEqual(PlanReferenceNumber, _apireference);
+            Assert.AreEqual(planupdateddate, _planasdaate);
+        }
+        internal void IsTotalfundvalueisdisplayedOnPlanSummary(string _PlanName, decimal _apitotalfundvalue)
+        {
+            string _tfv = FormatCurrencydecimalinput(_apitotalfundvalue);
+
+            if (LblSavingsPlan.Displayed == true)
+                TotalFundValue = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='SavingInvestmentTotalFundVal']"), 60).Text;
+            Assert.AreEqual(TotalFundValue, _tfv);
+        }
+
+        internal void IsTotalfundvalueisdisplayedOnPensionPlanSummary(string _PlanName, decimal _apitotalfundvalue)
+        {
+            string _tfv = FormatCurrencydecimalinput(_apitotalfundvalue);
+
+            if (LblRetirementPlan.Displayed == true)
+                TotalFundValue = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='PlanSummary_PensionTotalFundValue']"), 60).Text;
+            Assert.AreEqual(TotalFundValue, _tfv);
+        }
+
+
+
+        internal void IsRemainingISAallowanceisdisplayedOnPlanSummary(string _PlanName, double _apiremainingisaallowance)
+        {
+            string _remainingallowance = FormatCurrency(_apiremainingisaallowance);
+
+            RemainingISAAllowance = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='SavingInvestmentRemainingISAVal']"), 60).Text;
+            Assert.AreEqual(RemainingISAAllowance, _remainingallowance);
+            BtnTopUPISAOnPlanSummary.AssertElementIsPresent();
+        }
+
+        internal void IsRegularPremiumamountisdisplayedOnPlanSummary(string _PlanName, double _apiRegularPremiumAmount)
+        {
+            string FormattedRegularPremiumamount = FormatCurrency(_apiRegularPremiumAmount);
+            Regularpremiumamount = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='LCCICPremiumAmmount']")).Text;
+            Assert.AreEqual(FormattedRegularPremiumamount, Regularpremiumamount);
+        }
+
+        internal void IsPremiumFrequencyisdisplayedOnPlanSummary(string _PlanName, string _apiremiumFrequency)
+        {
+
+            PremiumFrquency = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='LCCICFrequecncy']")).Text;
+            Assert.AreEqual(_apiremiumFrequency, PremiumFrquency);
+        }
+
+        internal void IsLastIncomeAmountandFrequencyisdisplayedOnPlanSummary(string _PlanName, string _apiincomefrequency, double _apiregularincomeamount)
+        {
+            string FormattedRegularIncomeamount = FormatCurrency(_apiregularincomeamount); //need to check with data
+            string RegularIncomeAmount = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='RAnnuityPlanregIncomeAmmount']")).Text;
+            string IncomeFrequency = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//span[@data-test='RAnnuityPlanIncomeFre']")).Text;
+            Assert.AreEqual(RegularIncomeAmount, FormattedRegularIncomeamount);
+
+            Assert.AreEqual(IncomeFrequency, _apiincomefrequency);
+        }
+
+        internal void IsRetirementDateisdisplayedonPlanSummary(string subplanname, DateTimeOffset _apiretirementdate)
+        {
+
+            string Retirementdate = driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + subplanname + "')]/parent::div/../../../following-sibling::div//span[@data-test='PlanSummary_PensionRetirementDate']")).Text;
+
+            Assert.AreEqual(FormatDate(_apiretirementdate), Retirementdate);
+        }
+
+        // Click on View Plan based on PlanName 
+        internal void ClickViewPlan(string _PlanName)
+        {
+            Thread.Sleep(1000);
+            driver.WaitUntilElementVisible(By.XPath("//*[contains(text(),'" + _PlanName + "')]/parent::div/../../../following-sibling::div//button[@data-test='PlanSummary_btnViewPlan']"), 90).Click();
+        }
+
+        // Plan details Fields validation, Certain fields are commonly used across all plans so their asserts has been handled in single method
+
+        internal void IsCommonFieldsaredisplayedOnPlandetails(string _subplanname, string _apireference, bool _apiJointlyOwned, bool _apiHeldinTrust)
+        {
+
+            Thread.Sleep(2000);
+            // Incase if the plan is jointly owned and held in trust
+            if (_apiJointlyOwned == true)
+                Assert.IsTrue(IconJointPlan.Displayed);
+            if (_apiHeldinTrust == true)
+                Assert.IsTrue(IconPlansinTrust.Displayed);
+
+
+            LblPlandetailsPlanName.AssertText(_subplanname);
+            Plandetailsrefnumber.AssertText(_apireference);
+        }
+
+        internal void IsTotalFundValueisDisplayedOnplanDetails(decimal _apitotalfundvalue)
+        {
+            string FormattedTfv = FormatCurrencydecimalinput(_apitotalfundvalue);
+            LblTotalfundValue.AssertText(FormattedTfv);
+
+            driver.ScrollElementIntoView(LblTFVDownArrow);
+            LblTFVDownArrow.Click();
+        }
+
+        internal void IsFinalbonusValueisdisplayedOnPlanDetails(double _apifinalbonusvalue)
+        {
+            string FomattedFinalBonusValue = FormatCurrency(_apifinalbonusvalue);
+            LblFinalBonusValue.AssertText(FomattedFinalBonusValue);
+        }
+
+        internal bool IsFundNameFundValueisDisplayedonPlandetails(List<(string APIFundName, string APIValueOfUnits)> _APIFundNameandFundValuelist)
+        {
+            if (LblTFVDownArrow.Displayed)
+            {
+                driver.ScrollElementIntoView(LblTFVDownArrow);
+                LblTFVDownArrow.Click();
+            }
+            
+        
+        List<(string fundname, string fundvalue)> ValueList = new List<(string fundname, string fundvalue)>();
+
+            foreach (IWebElement element in Lblfundnamefundvalue)
+            {
+                string text = element.Text;
+                string Formattedtext = Regex.Replace(text, @"\r\n", "+");
+                string[] parts = Formattedtext.Split('+');
+
+                // Store in the list
+                ValueList.Add((parts[0], parts[1]));
+            }
+            bool listareEqual = _APIFundNameandFundValuelist.SequenceEqual(ValueList);
+            return listareEqual;
+        }
+
+        internal void IsValueIsDisplayedonPlandetails(decimal _Apiholdingorsurrendervalue)
+        {
+            string Formattedholdingorsurrendervalue = FormatCurrencydecimalinput(_Apiholdingorsurrendervalue);
+            LblValue.AssertText(Formattedholdingorsurrendervalue);
+
+            driver.ScrollElementIntoView(LblTFVDownArrow);
+        }
+        internal void IslastPremiumpaymentdateandpaidvvalueOnPlandetails(DateTimeOffset _apilastpremiumpaymentdate,
+            double _apilastpremiumpaidvalue)
+        {
+            string FormattedPremiumpaymentdate = FormatDate(_apilastpremiumpaymentdate);
+            string FormattedPremiumPaidValue = FormatCurrency(_apilastpremiumpaidvalue);
+
+            Lbllastpremiumpaymentdate.AssertText(FormattedPremiumpaymentdate);
+            LbllastpremiumpaidValue.AssertText(FormattedPremiumPaidValue);
+        }
+
+        internal void ValidateCommonValuesOnPlandetailsforMonthlyPremium(double _apiregularpremiumamnt, string _apipremiumFrequency,
+            DateTimeOffset _apinextpremiumpaymentdate)
+        {
+
+            string FomattedRegularPremiumAmnt = FormatCurrency(_apiregularpremiumamnt);
+            string FormattedNextPremiumpaymentdate = FormatDate(_apinextpremiumpaymentdate);
+            LblRegularPremiumAmnt.AssertText(FomattedRegularPremiumAmnt);
+            LblPremiumFrequency.AssertText(_apipremiumFrequency);
+            LblNextPremiumPaymentDate.AssertText(FormattedNextPremiumpaymentdate);
+        }
+
+        internal void ValidateRemainingISAallowanceonPlandetails(double _apiremainingisaallowance)
+        {
+            string _isaallowance = FormatCurrency(_apiremainingisaallowance);
+
+            LblRemainingISAAllowance.AssertText(_isaallowance);
+        }
+
+        internal void ValidateTermYearsdisplayed(long APITermYears) => LblTermYears.AssertText(APITermYears.ToString());
+        internal void IsTermAgeisdisplayedOnPlandetails(long APITermAge) => LblTermAge.AssertText(APITermAge.ToString());
+
+        internal void ValidatePremiumReviewdateisDisplayed(DateTimeOffset ApiPremiumReviewdate)
+        {
+            string FormatteApiPremiumReviewdate = FormatDate(ApiPremiumReviewdate);
+            LblPremiumReviewDate.AssertText(FormatteApiPremiumReviewdate);
+        }
+        internal void ValidateRetirementdateisDisplayed(DateTimeOffset ApRetirementdatedate)
+        {
+            string FormattedRetirementdate = FormatDate(ApRetirementdatedate);
+            LblRetirementDate.AssertText(FormattedRetirementdate);
+        }
+
+        internal void ValidateCrystalisedfundisDisplayed(double _apicrysfund) => LblCrysFund.AssertText(FormatCurrency(_apicrysfund));
+        internal void ValidateUncrystallisedFundValueisDisplayed(double _apiuncrysfund) => LblUnCrysFund.AssertText(FormatCurrency(_apiuncrysfund));
+
+
+        internal void ValidateLastIncomeAmountandFrequencyisdisplayed(string _apiIncomeFrequency, double _apiregularIncomeamount)
+        {
+
+            string FomattedRegularIncomeAmnt = FormatCurrency(_apiregularIncomeamount);
+
+            LblIncomeAmount.AssertText(FomattedRegularIncomeAmnt);
+            LblIncomeFrequency.AssertText(_apiIncomeFrequency);
+
+        }
+
+        internal void ValidateLastIncomePaymentdateIsDisplayed(DateTimeOffset LastIncomePaymentdate)
+        {
+            string FormattedLastIncomePaymentDate = FormatDate(LastIncomePaymentdate);
+            LblLastIncomePaymentDate.AssertText(FormattedLastIncomePaymentDate);
+
+        }
+
+        internal void ValidateLastIncomePaymentValuesDisplayed(double _ApiLastIncomePaymentValue)
+        {
+            string FomattedApiIncomePaymentValue = FormatCurrency(_ApiLastIncomePaymentValue);
+            LbllastIncomePayementValue.AssertText(FomattedApiIncomePaymentValue);
+        }
+        internal void ValidateDependantAnnuityisDisplayed(long _ApiSpousePension) => LblSpousePension.AssertText(_ApiSpousePension.ToString() + " %");
+
+        internal void ValidateAnnuityEndADateisDisplayed(DateTimeOffset _apiannuityEnddate)
+        {
+            string FormattedAnnuityEndtDate = FormatDate(_apiannuityEnddate);
+            //LblAnnuityenddate.AssertText(FormattedAnnuityEndtDate);
+
+        }
+
+        internal void ValidateCriticalIllnessCoverisDisplayed(double _apicriticalIllnesscover)
+        {
+            string FomattedApiCicValue = FormatCurrency(_apicriticalIllnesscover);
+            LblCriticalIllnessCover.AssertText(FomattedApiCicValue);
+        }
+
+        internal void ValidateBeneficiaryNameisDisplayed(string beneficiaryname) => Lblbenefiercyname.AssertText(beneficiaryname);
+        internal void ValidateTotalDisabilityCoverisDisplayed(double _ApiTotaldisablitycover)
+        {
+            string Fomatteddisablitycover = FormatCurrency(_ApiTotaldisablitycover);
+            //LbltotalDisablityCover.AssertText(Fomatteddisablitycover);
+        }
+
+        internal void ValidateDeathBenefitisDisplayed(double APIDeathBenefit)
+        {
+
+            string Fomattedddeathbenefit = FormatCurrency(APIDeathBenefit);
+            LblDeathbenefit.AssertText(Fomattedddeathbenefit);
+        }
+
+        // Investment History Validation on Plan details for monthly premium paying user
+        internal bool IsAllTransaredisplayedasexpected(List<(string ApiPayementdate, string ApiPaymentAmount)> _ApiPaymentList)
+        {
+
+            // Parse API Payments by using linQ
+            // List<(string formattedApiDate, string apiamount)> formattedApiList = _ApiPaymentList.Select(item =>
+            //(
+            //   item.ApiPayementdate.ToString("dd MMM, yyyy"), // Format the date
+            //   item.ApiPaymentAmount.ToString("C", CultureInfo.GetCultureInfo("en-GB"))
+            // )).ToList();
+
+            // Parse UI elements
+            driver.ScrollElementIntoView(BtnViewMoreTrans);
+            BtnViewMoreTrans.Click();
+            BtnViewLessTrans.AssertElementIsPresent();
+            driver.ScrollElementIntoView(LblPaymentdatevalueElements[0]);
+
+            List<(string date, string amount)> ValueList = new List<(string date, string amount)>();
+            foreach (IWebElement element in LblPaymentdatevalueElements)
+            {
+                Thread.Sleep(2000);
+                string text = element.Text;
+                string Formattedtext = Regex.Replace(text, @"\r\n", "");
+                string[] parts = Formattedtext.Split(new char[] { ' ', '+' }, StringSplitOptions.RemoveEmptyEntries);
+                string date = parts[0] + " " + parts[1] + " " + parts[2];
+                string amount = string.Format(CultureInfo.GetCultureInfo("en-GB"), "{0:C}", parts[3]);
+
+                // Store in the list
+                ValueList.Add((date, amount));
+                Thread.Sleep(2500);
+            }
+
+            //compare the values stored in the list as needed
+            _ApiPaymentList.Sort((x, y) => y.ApiPayementdate.CompareTo(x.ApiPayementdate));
+            ValueList.Sort((x, y) => y.date.CompareTo(x.date));
+            Thread.Sleep(2000);
+            bool listareEqual = _ApiPaymentList.SequenceEqual(ValueList);
+
+            return listareEqual;
+        }
+
+        internal bool IsDefferedPeriodandBenefitsdisplayed(List<(string ApiDefrredPeriod, string apivalue)> _ApiDeferredperiodbenefits)
+        {
+            driver.ScrollElementIntoView(LblDeferredPeriodBenefits[0]);
+            List<(string deferredperiod, string amount)> ValueList = new List<(string deferredperiod, string amount)>();
+            foreach (IWebElement element in LblDeferredPeriodBenefits)
+            {
+                string text = element.Text;
+                string Formattedtext = Regex.Replace(text, @"\r\n", "+");
+                string[] parts = Formattedtext.Split('+');
+
+                // Store in the list
+                ValueList.Add((parts[0], parts[1]));
+            }
+
+            bool listareEqual = _ApiDeferredperiodbenefits.SequenceEqual(ValueList);
+
+            return listareEqual;
+        }
+
+        internal bool IsRequestwithdrawalisdisplayed(string PlanName)
+        {
+            mainWindowHandle = driver.CurrentWindowHandle;
+            bool b = false;
+            driver.ScrollElementIntoView(LinkRequestawithdrawal);
+            if (PlanName.Contains("ISA"))
+            {
+                LinkRequestawithdrawal.AssertElementIsPresent();
+                b = true;
+            }
+
+            else
+            {
+                LinkRequestawithdrawal.Click();
+                BtnContinueinPopup.Click();
+                Thread.Sleep(1000);
+                driver.SwitchToSecondWindow();
+                Assert.AreEqual("Investment withdrawal request", driver.Title);
+                Thread.Sleep(500);
+                b = driver.FindElement(By.XPath("//strong[contains(text(),'WF08M v2.1 - Investment Withdrawal Request - November 2023')]")).Displayed;
+                driver.Close();
+                driver.SwitchToMainWindow(mainWindowHandle);
+            }
+
+            return b;
+        }
+
+        internal bool IsChangePlanisdisplayed(string ApiSchemaType)
+        {
+            bool b;
+            mainWindowHandle = driver.CurrentWindowHandle;
+            LnkMakechangetomyplan.Click();
+            BtnContinueinPopup.Click();
+            driver.SwitchToSecondWindow();
+            Thread.Sleep(500);
+            if (ApiSchemaType == "planPension")
+            {
+                Thread.Sleep(2000);
+                Assert.AreEqual("Make changes to my pension plan", driver.Title);
+                b = driver.FindElement(By.XPath("//strong[contains(text(),'WF05 v1.1 - Make changes to my Pension - October 2023')]")).Displayed;
+            }
+            else
+            {
+                Thread.Sleep(2000);
+                Assert.AreEqual("Make changes to my investment plan", driver.Title);
+                b = driver.FindElement(By.XPath("//strong[contains(text(),'WF07M v2.1 - Make changes to my Investment - October 2023')]")).Displayed;
+            }
+
+            driver.Close();
+            driver.SwitchToMainWindow(mainWindowHandle);
+            return b;
+        }
+
+        internal void IsHelpandSupportdisplayed()
+        {
+
+            LnkHelpSupport.AssertElementIsPresent();
+            LnkHelpSupport.Click();
+            Thread.Sleep(3000);
+            Assert.AreEqual("My Wesleyan: Help and support", driver.Title);
+            driver.Navigate().Back();
+        }
+        internal void IsRequestPlanInfodisplayed() => LinkRequestPlanInfo.AssertElementIsPresent();
+
+        internal void IsAdrMirrorWutmPlanloginctaisdisplayed()
+        {
+            //mainWindowHandle = driver.CurrentWindowHandle;
+            BtnLogintoWutm.AssertElementIsPresent();
+            //BtnLogintoWutm.Click();
+            //Thread.Sleep(2500);
+            //driver.SwitchToSecondWindow();
+            //Thread.Sleep(1000);
+            //Assert.AreEqual("wutm.wesleyan.co.uk", driver.Title);
+            //Thread.Sleep(500);
+            //driver.Close();
+            //driver.SwitchToMainWindow(mainWindowHandle);
+        }
+        internal void IsTopupISAisonPlanDetailsdisplayed() => BtnPlandetailsTopUpIsa.AssertElementIsPresent();
+
+        internal bool IsAnnuityIncomedisplayed()
+        {
+            mainWindowHandle = driver.CurrentWindowHandle;
+            LnkbankdetailsforIncome.Click();
+            BtnContinueinPopup.Click();
+            Thread.Sleep(500);
+            driver.SwitchToSecondWindow();
+            Assert.AreEqual("Change of personal details and bank details for income I receive", driver.Title);
+            Thread.Sleep(500);
+            bool b = driver.FindElement(By.XPath("//strong[contains(text(),'WF01M v1 - Changes to Personal or Bank Details - Aug 2021')]")).Displayed;
+            driver.Close();
+            driver.SwitchToMainWindow(mainWindowHandle);
+            return b;
+        }
+        internal bool IsRequestaClaimdisplayed()
+        {
+            mainWindowHandle = driver.CurrentWindowHandle;
+            LnkRequestaclaim.Click();
+            BtnContinueinPopup.Click();
+            Thread.Sleep(500);
+            driver.SwitchToSecondWindow();
+            Assert.AreEqual("I want to make a claim for illness or injury benefit", driver.Title);
+            Thread.Sleep(500);
+            bool b = driver.FindElement(By.XPath("//strong[contains(text(),'WF10M v2 - I want to make a claim for illness or injury benefits - July 2023')]")).Displayed;
+            driver.SwitchToMainWindow(mainWindowHandle);
+            return b;
+        }
+        internal void ClickSuppressionRequestPlanInfor(string _reference)
+        {
+            driver.ScrollElementIntoView(btnrequestPlanInfo);
+            btnrequestPlanInfo.Click();
+        }
+
+        internal void ClicklogoutbuttonOnPlandetails()
+        {
+            driver.ScrollElementIntoView(btnlogoutPlandetails);
+            btnlogoutPlandetails.Click();
+        }
+
+        internal string FormatCurrency(double value)
+        {
+            return "£" + string.Format(CultureInfo.InvariantCulture, "{0:N2}", value);
+        }
+        internal string FormatCurrencydecimalinput(decimal value)
+        {
+            return "£" + string.Format(CultureInfo.InvariantCulture, "{0:N2}", value);
+        }
+
+
+        internal string FormatDate(DateTimeOffset date)
+        {
+            return date.ToString("dd/MM/yyyy");
+        }
+
+        internal string FormatDateforPlanSummary(DateTimeOffset date)
+        {
+            return date.ToString("ddd, dd MMM yyy");
+        }
+        #endregion
+
+    }
+}
